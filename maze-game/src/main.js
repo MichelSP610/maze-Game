@@ -1,13 +1,40 @@
 import './style.css'
 
+/**
+ * To run the webView: "npm run dev"
+ * 
+ * Inspiration game: MAZE WARS
+ */
+
 // 1. Start the canvas
 const canvas = document.querySelector('canvas')
 /** @type {CanvasRenderingContext2D} */
 const ctx = canvas.getContext('2d')
 
-canvas.width = 1200;
-canvas.height = 900;
+canvas.width = 700;
+canvas.height = 500;
 
+
+const mazeLayout = [
+[0,0,0,0,0,0,0],
+[0,1,1,1,1,1,0],
+[0,1,0,1,0,1,0],
+[0,0,0,1,0,1,0],
+[0,0,0,0,0,1,0],
+[0,1,1,1,1,1,0],
+[0,0,0,0,0,0,0]
+]
+
+let currentLayers = 5
+
+document.addEventListener("keyup", (e) => {
+    console.log(`Key "${e.key}" pressed`)
+    if (e.key === "w") {
+        currentLayers -= 1
+    } else if (e.key === "s") {
+        currentLayers = Math.max(1, currentLayers + 1)
+    }
+})
 
 // 2. Game Loop
 function update() {
@@ -21,74 +48,88 @@ function draw() {
     ctx.fillStyle = '#000'
     ctx.fillRect(0,0, canvas.width, canvas.height)
 
-    drawTunnel()
+    drawTunnel(currentLayers)
 }
 
 update()
 
 
-function drawTunnel() {
-    const layers = 3 // Number of depth layers in the tunnel
-    const centerX = canvas.width / 2 // X center of the canvas
-    const centerY = canvas.height / 2 // Y center of the canvas
-    const maxW = canvas.width // Maximum width of the outermost rectangle
-    const maxH = canvas.height // Maximum height of the outermost rectangle
+/**
+ * TODO 
+ * 
+ * Can be of use: https://www.youtube.com/watch?v=pNiyz0sl1no&t=2926s
+ * 
+ * Make a simple maze ✅// Example: https://youtu.be/nkpo7XCJMUY?t=295
+ * Put the player in the maze 
+ * Show the correct tunnel depending on the position of the player
+ * Allow the player movement reading the keystrokes (W A D) //The player cannot move if there is a wall in that direction
+ * 
+ * Automatic maze generator
+ */
 
-    let prev = null // This will store the previous layer's corners
+function drawTunnel(distance) {
+    // === [1] SETUP CONSTANTS ===
+    const layers = distance // Number of "depth steps" in the tunnel
+    const centerX = canvas.width / 2 // Center of canvas horizontally
+    const centerY = canvas.height / 2 // Center of canvas vertically
+    const fullWidth = canvas.width    // Total width of canvas
+    const fullHeight = canvas.height  // Total height of canvas
 
+    // This will store the corners of the previous rectangle (layer)
+    let previousCorners = null
+
+    // === [2] LOOP THROUGH EACH LAYER ===
     for (let i = 0; i <= layers; i++) {
-        // Calculate how "deep" this layer is as a percentage (closer to 1 = closer to camera)
+        // Calculate how "far" this layer is (0 = closest, 1 = farthest)
         let scale = 1 - i / (layers + 1)
 
         // Shrink width and height based on depth to simulate perspective
-        let w = maxW * scale * 0.5
-        let h = maxH * scale * 0.5
+        let rectWidth = fullWidth * scale * 0.5
+        let rectHeight = fullHeight * scale * 0.5
 
-        // Calculate the four corners of the current rectangle
-        let corners = {
-            topLeft: [centerX - w, centerY - h],
-            topRight: [centerX + w, centerY - h],
-            bottomRight: [centerX + w, centerY + h],
-            bottomLeft: [centerX - w, centerY + h]
-        }
+        // === [3] CALCULATE CORNERS OF CURRENT RECTANGLE ===
+        let topLeft     = [centerX - rectWidth, centerY - rectHeight]
+        let topRight    = [centerX + rectWidth, centerY - rectHeight]
+        let bottomRight = [centerX + rectWidth, centerY + rectHeight]
+        let bottomLeft  = [centerX - rectWidth, centerY + rectHeight]
 
-        // Set line color and thickness
-        ctx.strokeStyle = 'white'
-        ctx.lineWidth = 1
-
-        // Draw the current rectangle
+        // === [4] DRAW CURRENT RECTANGLE OUTLINE ===
+        ctx.strokeStyle = 'white' // Set line color
+        ctx.lineWidth = 1         // Set line thickness
         ctx.beginPath()
-        ctx.moveTo(corners.topLeft[0], corners.topLeft[1])
-        ctx.lineTo(corners.topRight[0], corners.topRight[1])
-        ctx.lineTo(corners.bottomRight[0], corners.bottomRight[1])
-        ctx.lineTo(corners.bottomLeft[0], corners.bottomLeft[1])
+        ctx.moveTo(...topLeft)
+        ctx.lineTo(...topRight)
+        ctx.lineTo(...bottomRight)
+        ctx.lineTo(...bottomLeft)
         ctx.closePath()
         ctx.stroke()
 
-        // If this is not the first layer, draw lines connecting corners to previous layer
-        if (prev) {
+        // === [5] DRAW CONNECTING LINES TO PREVIOUS RECTANGLE ===
+        if (previousCorners) {
             ctx.beginPath()
 
-            // Connect top-left corners
-            ctx.moveTo(prev.topLeft[0], prev.topLeft[1])
-            ctx.lineTo(corners.topLeft[0], corners.topLeft[1])
+            // Connect matching corners from previous layer to current layer
+            ctx.moveTo(...previousCorners.topLeft)
+            ctx.lineTo(...topLeft)
 
-            // Connect top-right corners
-            ctx.moveTo(prev.topRight[0], prev.topRight[1])
-            ctx.lineTo(corners.topRight[0], corners.topRight[1])
+            ctx.moveTo(...previousCorners.topRight)
+            ctx.lineTo(...topRight)
 
-            // Connect bottom-right corners
-            ctx.moveTo(prev.bottomRight[0], prev.bottomRight[1])
-            ctx.lineTo(corners.bottomRight[0], corners.bottomRight[1])
+            ctx.moveTo(...previousCorners.bottomRight)
+            ctx.lineTo(...bottomRight)
 
-            // Connect bottom-left corners
-            ctx.moveTo(prev.bottomLeft[0], prev.bottomLeft[1])
-            ctx.lineTo(corners.bottomLeft[0], corners.bottomLeft[1])
+            ctx.moveTo(...previousCorners.bottomLeft)
+            ctx.lineTo(...bottomLeft)
 
             ctx.stroke()
         }
 
-        // Save the current layer's corners to connect on the next loop
-        prev = corners
+        // === [6] SAVE CURRENT CORNERS FOR NEXT LOOP ===
+        previousCorners = {
+            topLeft,
+            topRight,
+            bottomRight,
+            bottomLeft
+        }
     }
 }
