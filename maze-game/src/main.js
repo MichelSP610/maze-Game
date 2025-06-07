@@ -190,5 +190,7 @@ update()
  * Show the correct tunnel depending on the position of the player ✅
  * Allow the player movement reading the keystrokes (W A D) ✅ //The player cannot move if there is a wall in that direction
  * 
+ * Make the intersections in the path visible.
+ * 
  * Automatic maze generator
  */
